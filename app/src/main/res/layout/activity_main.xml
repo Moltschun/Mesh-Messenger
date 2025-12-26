@@ -9,7 +9,7 @@
         android:id="@+id/status_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Готов к работе"
+        android:text="Ожидание команды"
         android:textAlignment="center"
         android:textSize="18sp"
         android:textStyle="bold"
@@ -19,7 +19,7 @@
         android:id="@+id/scan_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Сканировать эфир" />
+        android:text="Поиск устройства" />
 
     <ListView
         android:id="@+id/devices_list_view"
