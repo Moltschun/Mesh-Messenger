@@ -19,7 +19,15 @@
         android:id="@+id/scan_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Поиск устройства" />
+        android:text="Сканировать эфир" />
+
+    <Button
+        android:id="@+id/btn_skip_scan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:backgroundTint="#607D8B"
+        android:text="Тест Чата" />
 
     <ListView
         android:id="@+id/devices_list_view"
