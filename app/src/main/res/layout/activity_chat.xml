@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#E5DDD5"> <androidx.recyclerview.widget.RecyclerView
+    android:background="@color/titan_background"> <androidx.recyclerview.widget.RecyclerView
     android:id="@+id/recycler_chat"
     android:layout_width="match_parent"
     android:layout_height="0dp"
@@ -14,29 +14,27 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
+        android:background="@color/titan_bubble_other"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="8dp"
-        android:elevation="4dp">
-
-        <EditText
-            android:id="@+id/edit_message"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@null"
-            android:hint="Сообщение..."
-            android:padding="10dp"
-            android:maxLines="4" />
-
-        <ImageButton
-            android:id="@+id/btn_send"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_send"
-            android:contentDescription="Отправить"
-            android:tint="#0088CC"/> </LinearLayout>
+        android:elevation="4dp"> <EditText
+        android:id="@+id/edit_message"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:background="@null"
+        android:hint="Сообщение..."
+        android:textColor="@color/titan_text_primary"
+        android:textColorHint="@color/titan_text_secondary"
+        android:padding="10dp"
+        android:maxLines="4" /> <ImageButton
+        android:id="@+id/btn_send"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_send"
+        android:contentDescription="Отправить"
+        android:tint="@color/titan_accent"/> </LinearLayout>
 
 </LinearLayout>

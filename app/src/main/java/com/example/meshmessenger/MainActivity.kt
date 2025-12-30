@@ -25,7 +25,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var statusTextView: TextView
     private lateinit var scanButton: Button
-    private lateinit var btnSkip: Button // Наша новая кнопка
     private lateinit var devicesListView: ListView
 
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
@@ -71,7 +70,6 @@ class MainActivity : AppCompatActivity() {
 
         statusTextView = findViewById(R.id.status_text)
         scanButton = findViewById(R.id.scan_button)
-        btnSkip = findViewById(R.id.btn_skip_scan) // Инициализация
         devicesListView = findViewById(R.id.devices_list_view)
 
         devicesAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, ArrayList())
@@ -81,13 +79,7 @@ class MainActivity : AppCompatActivity() {
             if (checkPermissions()) startDiscovery() else requestPermissions()
         }
 
-        // КЛИК ПО КНОПКЕ "ТЕСТ ЧАТА"
-        btnSkip.setOnClickListener {
-            // Запускаем чат без передачи адреса (ChatActivity сама включит режим симуляции)
-            val intent = Intent(this, ChatActivity::class.java)
-            startActivity(intent)
-        }
-
+        // КЛИК ПО УСТРОЙСТВУ -> СТАРТ ЧАТА
         devicesListView.setOnItemClickListener { _, _, position, _ ->
             if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
                 bluetoothAdapter?.cancelDiscovery()
