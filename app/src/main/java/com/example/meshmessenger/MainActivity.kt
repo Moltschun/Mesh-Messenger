@@ -147,7 +147,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        chatService = BluetoothChatService(handler)
+        chatService = BluetoothChatService.getInstance(handler)
 
         // Сразу проверяем права при запуске
         checkAndRequestPermissions()
@@ -156,6 +156,9 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (checkPermissionsGranted()) {
+            // ВАЖНО: Когда возвращаемся на главный экран, забираем управление себе
+            chatService.updateHandler(handler)
+
             if (chatService.getState() == BluetoothChatService.STATE_NONE) {
                 chatService.start()
             }
