@@ -9,8 +9,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
+import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.ListView
@@ -18,30 +23,61 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
 
+    // UI элементы
     private lateinit var statusTextView: TextView
     private lateinit var scanButton: Button
     private lateinit var devicesListView: ListView
 
+    // Адаптер Bluetooth и список устройств
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private val discoveredDevices = mutableListOf<BluetoothDevice>()
     private lateinit var devicesAdapter: ArrayAdapter<String>
 
-    private val enableBluetoothLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == RESULT_OK) Toast.makeText(this, "Bluetooth активен", Toast.LENGTH_SHORT).show()
+    // Сервис Bluetooth
+    private lateinit var chatService: BluetoothChatService
+
+    private val handler = object : Handler(Looper.getMainLooper()) {
+        override fun handleMessage(msg: android.os.Message) {
+            when (msg.what) {
+                BluetoothChatService.MESSAGE_STATE_CHANGE -> {
+                    when (msg.arg1) {
+                        BluetoothChatService.STATE_CONNECTED -> {
+                            statusTextView.text = "Подключено"
+                            devicesAdapter.clear()
+                        }
+                        BluetoothChatService.STATE_CONNECTING -> statusTextView.text = "Соединение..."
+                        BluetoothChatService.STATE_LISTEN, BluetoothChatService.STATE_NONE -> statusTextView.text = "Готов к поиску"
+                    }
+                }
+                BluetoothChatService.MESSAGE_READ -> {
+                    val readBuff = msg.obj as ByteArray
+                    val readMessage = String(readBuff, 0, msg.arg1)
+                    Toast.makeText(applicationContext, "Получено: $readMessage", Toast.LENGTH_LONG).show()
+                }
+                BluetoothChatService.MESSAGE_WRITE -> { }
+                BluetoothChatService.MESSAGE_TOAST -> {
+                    msg.data.getString("toast")?.let {
+                        Toast.makeText(applicationContext, it, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
     }
 
-    private val requestBluetoothPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-        val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            permissions[Manifest.permission.BLUETOOTH_SCAN] == true && permissions[Manifest.permission.BLUETOOTH_CONNECT] == true
+    private val requestBluetoothPermissions = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        // Проверяем, дали ли ВСЕ запрошенные права
+        val granted = permissions.entries.all { it.value }
+        if (granted) {
+            checkSystemAndStartDiscovery()
         } else {
-            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+            Toast.makeText(this, "Не хватает прав для поиска!", Toast.LENGTH_LONG).show()
         }
-        if (granted) enableBluetooth()
     }
 
     private val bluetoothReceiver = object : BroadcastReceiver() {
@@ -49,21 +85,37 @@ class MainActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 BluetoothDevice.ACTION_FOUND -> {
-                    val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                    if (device != null && device.name != null && !discoveredDevices.any { it.address == device.address }) {
-                        discoveredDevices.add(device)
-                        devicesAdapter.add("${device.name}\n[${device.address}]")
-                        devicesAdapter.notifyDataSetChanged()
+                    val device: BluetoothDevice? = if (Build.VERSION.SDK_INT >= 33) {
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    }
+
+                    if (device != null) {
+                        // Логируем каждое найденное устройство
+                        Log.d("Scan", "Found: ${device.name} - ${device.address}")
+
+                        if (!discoveredDevices.any { it.address == device.address }) {
+                            discoveredDevices.add(device)
+                            val name = device.name ?: "Unknown"
+                            devicesAdapter.add("$name\n${device.address}")
+                            devicesAdapter.notifyDataSetChanged()
+                        }
                     }
                 }
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                    statusTextView.text = "Сканирование завершено"
+                    statusTextView.text = "Поиск завершен"
                     scanButton.isEnabled = true
+                    if (discoveredDevices.isEmpty()) {
+                        Toast.makeText(context, "Ничего нового не найдено", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
     }
 
+    @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -75,68 +127,146 @@ class MainActivity : AppCompatActivity() {
         devicesAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, ArrayList())
         devicesListView.adapter = devicesAdapter
 
-        scanButton.setOnClickListener {
-            if (checkPermissions()) startDiscovery() else requestPermissions()
+        devicesListView.setOnItemClickListener { _, _, position, _ ->
+            if (checkPermissionsGranted()) {
+                val deviceToConnect = discoveredDevices[position]
+                if (bluetoothAdapter?.isDiscovering == true) {
+                    bluetoothAdapter.cancelDiscovery()
+                }
+                connectDevice(deviceToConnect)
+            } else {
+                checkAndRequestPermissions()
+            }
         }
 
-        // КЛИК ПО УСТРОЙСТВУ -> СТАРТ ЧАТА
-        devicesListView.setOnItemClickListener { _, _, position, _ ->
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
-                bluetoothAdapter?.cancelDiscovery()
+        scanButton.setOnClickListener {
+            if (checkPermissionsGranted()) {
+                checkSystemAndStartDiscovery()
+            } else {
+                checkAndRequestPermissions()
             }
-            val device = discoveredDevices[position]
-            val intent = Intent(this, ChatActivity::class.java)
-            intent.putExtra("device_address", device.address)
-            startActivity(intent)
         }
+
+        chatService = BluetoothChatService(handler)
+
+        // Сразу проверяем права при запуске
+        checkAndRequestPermissions()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (checkPermissionsGranted()) {
+            if (chatService.getState() == BluetoothChatService.STATE_NONE) {
+                chatService.start()
+            }
+        }
+    }
+
+    // --- ИСПРАВЛЕННАЯ ПРОВЕРКА ПРАВ ---
+    private fun checkPermissionsGranted(): Boolean {
+        // 1. Сначала проверяем Геолокацию (нужна ВСЕМ версиям Android, если не используется спец. флаг)
+        val locationGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+        // 2. Для новых Android (12+) проверяем еще и Bluetooth права
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val scanGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+            val connectGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+            return locationGranted && scanGranted && connectGranted
+        }
+
+        // Для старых Android достаточно геолокации
+        return locationGranted
+    }
+
+    private fun checkAndRequestPermissions() {
+        if (!checkPermissionsGranted()) {
+            val permissions = mutableListOf<String>()
+
+            // Обязательно добавляем Location для всех
+            permissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                permissions.add(Manifest.permission.BLUETOOTH_SCAN)
+                permissions.add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+
+            requestBluetoothPermissions.launch(permissions.toTypedArray())
+        } else {
+            // Если права уже есть, просто обновляем статус, но не запускаем скан автоматически, чтобы не спамить
+            statusTextView.text = "Готов к поиску"
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun checkSystemAndStartDiscovery() {
+        if (bluetoothAdapter == null) return
+
+        // 1. Проверяем Bluetooth
+        if (!bluetoothAdapter.isEnabled) {
+            Toast.makeText(this, "Включите Bluetooth!", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+            return
+        }
+
+        // 2. Проверяем GPS
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        if (!isGpsEnabled) {
+            Toast.makeText(this, "Включите GPS!", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+            return
+        }
+
+        // 3. Запускаем сканер
+        try { unregisterReceiver(bluetoothReceiver) } catch (e: Exception) {}
 
         val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         registerReceiver(bluetoothReceiver, filter)
-    }
 
-    private fun checkPermissions(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val scan = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
-            val connect = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
-            return scan == PackageManager.PERMISSION_GRANTED && connect == PackageManager.PERMISSION_GRANTED
-        } else {
-            val loc = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            return loc == PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-    private fun requestPermissions() {
-        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
-        } else {
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
-        requestBluetoothPermissions.launch(permissions)
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun enableBluetooth() {
-        if (bluetoothAdapter?.isEnabled == false) enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+        startDiscovery()
     }
 
     @SuppressLint("MissingPermission")
     private fun startDiscovery() {
-        if (bluetoothAdapter == null) return
-        enableBluetooth()
-        if (bluetoothAdapter.isDiscovering) bluetoothAdapter.cancelDiscovery()
+        if (bluetoothAdapter?.isDiscovering == true) {
+            bluetoothAdapter.cancelDiscovery()
+        }
+
         discoveredDevices.clear()
         devicesAdapter.clear()
-        statusTextView.text = "Поиск целей..."
+
+        // Показываем сохраненные
+        bluetoothAdapter?.bondedDevices?.forEach { device ->
+            discoveredDevices.add(device)
+            val name = device.name ?: "Unknown"
+            devicesAdapter.add("$name (Сохранено)\n${device.address}")
+        }
+
+        statusTextView.text = "Идет поиск..."
         scanButton.isEnabled = false
-        bluetoothAdapter.startDiscovery()
+
+        val started = bluetoothAdapter?.startDiscovery()
+        if (started != true) {
+            Toast.makeText(this, "Ошибка запуска сканера", Toast.LENGTH_SHORT).show()
+            scanButton.isEnabled = true
+        }
     }
 
+    private fun connectDevice(device: BluetoothDevice) {
+        val intent = Intent(this, ChatActivity::class.java)
+        intent.putExtra("device_address", device.address)
+        startActivity(intent)
+    }
+
+    @SuppressLint("MissingPermission")
     override fun onDestroy() {
         super.onDestroy()
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED) {
-            bluetoothAdapter?.cancelDiscovery()
+        if (bluetoothAdapter?.isDiscovering == true) {
+            bluetoothAdapter.cancelDiscovery()
         }
-        unregisterReceiver(bluetoothReceiver)
+        try { unregisterReceiver(bluetoothReceiver) } catch (e: Exception) {}
+        chatService.stop()
     }
 }

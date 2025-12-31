@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.MeshMessenger" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">#4CAF50</item>
+        <item name="colorPrimaryDark">#388E3C</item>
+        <item name="colorAccent">#4CAF50</item>
 
-    <style name="Theme.MeshMessenger" parent="android:Theme.Material.Light.NoActionBar" />
+        <item name="android:textColorPrimary">#000000</item>
+    </style>
 </resources>

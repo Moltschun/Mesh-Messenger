@@ -3,26 +3,23 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="start"
-    android:orientation="horizontal"
-    android:padding="4dp">
+    android:padding="8dp">
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_message_received"
-        android:maxWidth="280dp"
+        android:background="#FFFFFF"
         android:orientation="vertical"
-        android:paddingStart="12dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="6dp">
+        android:padding="12dp"
+        android:elevation="2dp"
+        android:minWidth="100dp">
 
         <TextView
             android:id="@+id/text_message_body"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Входящее"
-            android:textColor="@color/titan_text_primary"
+            android:text="Текст сообщения"
+            android:textColor="#000000"
             android:textSize="16sp" />
 
         <TextView
@@ -30,9 +27,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            android:layout_marginTop="4dp"
-            android:text="14:05"
-            android:textColor="@color/titan_text_secondary"
-            android:textSize="10sp" />
+            android:text="12:00"
+            android:textColor="#999999"
+            android:textSize="10sp"
+            android:layout_marginTop="4dp"/>
     </LinearLayout>
 </LinearLayout>

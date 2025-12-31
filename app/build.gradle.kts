@@ -55,12 +55,14 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
-    // Совместимость и UI
+    // КРИТИЧЕСКИ ВАЖНЫЕ зависимости для Bluetooth и Handler
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.activity:activity-ktx:1.8.2")
+
+    // !!! ДОБАВЛЕННЫЙ МОДУЛЬ (Без него чат не соберется) !!!
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
-    // Тестирование (оставил один комплект)
+    // Тесты
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -1,40 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/titan_background"> <androidx.recyclerview.widget.RecyclerView
-    android:id="@+id/recycler_chat"
-    android:layout_width="match_parent"
-    android:layout_height="0dp"
-    android:layout_weight="1"
-    android:clipToPadding="false"
-    android:paddingBottom="8dp" />
+    android:background="#E5E5E5">
 
     <LinearLayout
+        android:id="@+id/layout_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/titan_bubble_other"
-        android:gravity="center_vertical"
+        android:layout_alignParentBottom="true"
+        android:background="#FFFFFF"
+        android:elevation="4dp"
         android:orientation="horizontal"
-        android:padding="8dp"
-        android:elevation="4dp"> <EditText
-        android:id="@+id/edit_message"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:background="@null"
-        android:hint="Сообщение..."
-        android:textColor="@color/titan_text_primary"
-        android:textColorHint="@color/titan_text_secondary"
-        android:padding="10dp"
-        android:maxLines="4" /> <ImageButton
-        android:id="@+id/btn_send"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@android:drawable/ic_menu_send"
-        android:contentDescription="Отправить"
-        android:tint="@color/titan_accent"/> </LinearLayout>
+        android:padding="8dp">
 
-</LinearLayout>
+        <EditText
+            android:id="@+id/edit_message"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:hint="Введите сообщение..."
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLines="4"
+            android:padding="12dp" />
+
+        <ImageButton
+            android:id="@+id/btn_send"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Отправить"
+            android:src="@android:drawable/ic_menu_send" />
+
+    </LinearLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_chat"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/layout_input"
+        android:layout_alignParentTop="true"
+        android:clipToPadding="false"
+        android:padding="8dp"
+        tools:listitem="@layout/item_message_sent" />
+
+</RelativeLayout>
