@@ -16,4 +16,8 @@ interface MessageDao {
 
     @Update
     suspend fun update(message: Message)
+
+    // НОВАЯ КОМАНДА
+    @Query("DELETE FROM messages")
+    suspend fun deleteAll()
 }

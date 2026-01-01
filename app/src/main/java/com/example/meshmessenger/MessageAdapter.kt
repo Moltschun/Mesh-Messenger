@@ -43,10 +43,12 @@ class MessageAdapter : ListAdapter<Message, RecyclerView.ViewHolder>(MessagesCom
         private val textBody: TextView = itemView.findViewById(R.id.text_message_body)
         private val textTime: TextView = itemView.findViewById(R.id.text_message_time)
         private val textStatus: TextView = itemView.findViewById(R.id.text_message_status)
+        private val textName: TextView = itemView.findViewById(R.id.text_sender_name)
 
         fun bind(message: Message) {
             textBody.text = message.text
             textTime.text = message.timestamp
+            textName.text = "Вы" // Всегда "Вы" для своих сообщений
 
             when (message.status) {
                 MessageStatus.SENDING -> {
@@ -69,10 +71,12 @@ class MessageAdapter : ListAdapter<Message, RecyclerView.ViewHolder>(MessagesCom
     class ReceivedMessageViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val textBody: TextView = itemView.findViewById(R.id.text_message_body)
         private val textTime: TextView = itemView.findViewById(R.id.text_message_time)
+        private val textName: TextView = itemView.findViewById(R.id.text_sender_name)
 
         fun bind(message: Message) {
             textBody.text = message.text
             textTime.text = message.timestamp
+            textName.text = message.senderName // Имя устройства
         }
     }
 

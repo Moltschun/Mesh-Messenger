@@ -3,7 +3,18 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="start"
-    android:padding="8dp">
+    android:padding="8dp"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/text_sender_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Device Name"
+        android:textSize="12sp"
+        android:textColor="#757575"
+        android:layout_marginBottom="2dp"
+        android:layout_marginStart="4dp"/>
 
     <LinearLayout
         android:layout_width="wrap_content"

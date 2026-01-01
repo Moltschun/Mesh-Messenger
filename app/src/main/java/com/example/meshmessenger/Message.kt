@@ -3,7 +3,6 @@ package com.example.meshmessenger
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-// Статусы сообщения
 enum class MessageStatus {
     SENDING, SENT, ERROR, RECEIVED
 }
@@ -12,6 +11,7 @@ enum class MessageStatus {
 data class Message(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val text: String,
+    val senderName: String,
     val isSentByMe: Boolean,
     val timestamp: String,
     var status: MessageStatus
