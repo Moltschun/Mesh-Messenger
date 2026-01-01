@@ -84,7 +84,8 @@ Connectivity: `Android Bluetooth Classic API`
 
 ### Скриншоты
 |Поиск устройств: | Чат: |
-![alt text](Screenshot_20260101-215244-1.png) 
+|:---:|:---:|
+|<img src="Screenshot_20260101-215244.png" width="300" /> | <img src="Screenshot_20260101-215231.png" width="300" />|
 
 ---
 
@@ -139,4 +140,5 @@ Connectivity: `Android Bluetooth Classic API`
 ### Лицензия
 Этот проект распространяется под лицензией **MIT License**.
 Подробности см. в файле [LICENSE](LICENSE).
+
 
