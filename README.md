@@ -83,7 +83,8 @@ Connectivity: `Android Bluetooth Classic API`
 ---
 
 ### Скриншоты
-...
+|Поиск устройств: | Чат: |
+![alt text](Screenshot_20260101-215244-1.png) 
 
 ---
 
