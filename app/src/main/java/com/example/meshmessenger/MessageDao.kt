@@ -20,4 +20,7 @@ interface MessageDao {
     // НОВАЯ КОМАНДА
     @Query("DELETE FROM messages")
     suspend fun deleteAll()
+
+    @Query("UPDATE messages SET status = 'SENT' WHERE id = (SELECT id FROM messages WHERE status = 'SENDING' ORDER BY id DESC LIMIT 1)")
+    suspend fun markLastAsSent()
 }

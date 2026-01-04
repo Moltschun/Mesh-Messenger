@@ -41,16 +41,27 @@ class ChatActivity : AppCompatActivity() {
             when (msg.what) {
                 BluetoothChatService.MESSAGE_READ -> {
                     val readBuf = msg.obj as ByteArray
+                    // Твоя ESP отправляет "ESP получила", нужно убрать лишние пробелы (trim)
                     val readMessage = String(readBuf, 0, msg.arg1).trim()
 
-                    val incomingMsg = com.example.meshmessenger.Message(
-                        text = readMessage,
-                        senderName = deviceName, // Используем имя устройства
-                        isSentByMe = false,
-                        timestamp = getCurrentTime(),
-                        status = MessageStatus.RECEIVED
-                    )
-                    lifecycleScope.launch { messageDao.insert(incomingMsg) }
+                    // --- ЛОГИКА "СВОЙ-ЧУЖОЙ" ---
+                    if (readMessage == "ESP получила") {
+                        // ЭТО ПОДТВЕРЖДЕНИЕ!
+                        lifecycleScope.launch {
+                            // Меняем статус последнего сообщения на галочку
+                            messageDao.markLastAsSent()
+                        }
+                    } else {
+                        // ЭТО ОБЫЧНОЕ СООБЩЕНИЕ ОТ ДРУГОГО ЧЕЛОВЕКА
+                        val incomingMsg = com.example.meshmessenger.Message(
+                            text = readMessage,
+                            senderName = deviceName,
+                            isSentByMe = false,
+                            timestamp = getCurrentTime(),
+                            status = MessageStatus.RECEIVED
+                        )
+                        lifecycleScope.launch { messageDao.insert(incomingMsg) }
+                    }
                 }
                 BluetoothChatService.MESSAGE_TOAST -> {
                     val text = msg.data.getString("toast")
@@ -149,11 +160,11 @@ class ChatActivity : AppCompatActivity() {
         lifecycleScope.launch {
             messageDao.insert(newMessage)
             try {
-                chatService.write(text.toByteArray())
+                // Добавляем перенос строки \n, так как твой код ESP32 ждет readStringUntil('\n')
+                chatService.write((text + "\n").toByteArray())
 
-                // ИСПРАВЛЕНИЕ: Сразу ставим галочку, раз отправили в поток
-                newMessage.status = MessageStatus.SENT
-                messageDao.update(newMessage)
+                // 2. УБИРАЕМ СТРОКУ, КОТОРАЯ СТАВИЛА ГАЛОЧКУ СРАЗУ
+                // messageDao.update(newMessage.copy(status = MessageStatus.SENT)) <-- ЭТО УДАЛИТЬ ИЛИ ЗАКОММЕНТИРОВАТЬ
 
             } catch (e: Exception) {
                 newMessage.status = MessageStatus.ERROR
