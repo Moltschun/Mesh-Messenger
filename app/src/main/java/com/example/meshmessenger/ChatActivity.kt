@@ -41,18 +41,21 @@ class ChatActivity : AppCompatActivity() {
             when (msg.what) {
                 BluetoothChatService.MESSAGE_READ -> {
                     val readBuf = msg.obj as ByteArray
-                    // Твоя ESP отправляет "ESP получила", нужно убрать лишние пробелы (trim)
+                    // Преобразуем байты в строку и убираем пробелы по краям
                     val readMessage = String(readBuf, 0, msg.arg1).trim()
 
-                    // --- ЛОГИКА "СВОЙ-ЧУЖОЙ" ---
-                    if (readMessage == "ESP получила") {
-                        // ЭТО ПОДТВЕРЖДЕНИЕ!
+                    // --- ЛОГИКА "СВОЙ-ЧУЖОЙ" (Обновленная) ---
+                    // Проверяем точную фразу, которую присылает твоя ESP32
+                    if (readMessage.equals("ESP32 получила", ignoreCase = true)) {
+
+                        // ЭТО ПОДТВЕРЖДЕНИЕ ДОСТАВКИ (ACK)
                         lifecycleScope.launch {
-                            // Меняем статус последнего сообщения на галочку
+                            // Находим последнее сообщение со статусом SENDING и ставим SENT (Галочка)
                             messageDao.markLastAsSent()
                         }
+
                     } else {
-                        // ЭТО ОБЫЧНОЕ СООБЩЕНИЕ ОТ ДРУГОГО ЧЕЛОВЕКА
+                        // ЭТО ОБЫЧНОЕ СООБЩЕНИЕ ОТ СОЮЗНИКА
                         val incomingMsg = com.example.meshmessenger.Message(
                             text = readMessage,
                             senderName = deviceName,
@@ -61,6 +64,13 @@ class ChatActivity : AppCompatActivity() {
                             status = MessageStatus.RECEIVED
                         )
                         lifecycleScope.launch { messageDao.insert(incomingMsg) }
+
+                        // Вызов уведомления (чтобы ты увидел сообщение в шторке)
+                        NotificationHelper.showNotification(
+                            applicationContext,
+                            "Новое сообщение",
+                            "$deviceName: $readMessage"
+                        )
                     }
                 }
                 BluetoothChatService.MESSAGE_TOAST -> {
@@ -162,9 +172,6 @@ class ChatActivity : AppCompatActivity() {
             try {
                 // Добавляем перенос строки \n, так как твой код ESP32 ждет readStringUntil('\n')
                 chatService.write((text + "\n").toByteArray())
-
-                // 2. УБИРАЕМ СТРОКУ, КОТОРАЯ СТАВИЛА ГАЛОЧКУ СРАЗУ
-                // messageDao.update(newMessage.copy(status = MessageStatus.SENT)) <-- ЭТО УДАЛИТЬ ИЛИ ЗАКОММЕНТИРОВАТЬ
 
             } catch (e: Exception) {
                 newMessage.status = MessageStatus.ERROR

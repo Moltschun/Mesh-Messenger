@@ -120,6 +120,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        NotificationHelper.createNotificationChannel(this)
+
         statusTextView = findViewById(R.id.status_text)
         scanButton = findViewById(R.id.scan_button)
         devicesListView = findViewById(R.id.devices_list_view)
